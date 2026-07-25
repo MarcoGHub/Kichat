@@ -1,0 +1,21 @@
+# Render.com deployment blueprint.
+# Lets you host Kichat online for free and open it from any phone browser.
+# Render reads this file automatically when you create a Blueprint service.
+services:
+  - type: web
+    name: kichat
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      # Uses Groq's free, OpenAI-compatible API by default (open Llama models).
+      - key: PROVIDER
+        value: openai
+      - key: OPENAI_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: OPENAI_MODEL
+        value: llama-3.3-70b-versatile
+      # Your secret Groq API key — you enter this in the Render dashboard.
+      - key: OPENAI_API_KEY
+        sync: false
