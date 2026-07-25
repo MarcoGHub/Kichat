@@ -9,13 +9,16 @@ services:
     buildCommand: npm install
     startCommand: node server.js
     envVars:
-      # Uses Groq's free, OpenAI-compatible API by default (open Llama models).
+      # Uses Google Gemini via its OpenAI-compatible endpoint (works as-is,
+      # supports the action/tool system). Swap the URL/model for another
+      # OpenAI-compatible provider (e.g. Groq) if you prefer.
       - key: PROVIDER
         value: openai
       - key: OPENAI_BASE_URL
-        value: https://api.groq.com/openai/v1
+        value: https://generativelanguage.googleapis.com/v1beta/openai
       - key: OPENAI_MODEL
-        value: llama-3.3-70b-versatile
-      # Your secret Groq API key — you enter this in the Render dashboard.
+        value: gemini-2.5-flash
+      # Your secret Gemini API key (from aistudio.google.com) — you enter
+      # this in the Render dashboard.
       - key: OPENAI_API_KEY
         sync: false
