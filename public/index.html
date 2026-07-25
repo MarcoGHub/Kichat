@@ -13,6 +13,7 @@
     <section class="stage">
       <div class="stage-glow"></div>
       <img id="portrait" class="portrait" alt="Nikita" hidden />
+      <video id="portraitVideo" class="portrait" hidden autoplay loop muted playsinline></video>
       <div id="avatar" class="avatar"></div>
       <div class="nameplate">
         <span class="name">Nikita</span>
@@ -26,17 +27,18 @@
     <div id="settingsModal" class="modal" hidden>
       <div class="modal-card">
         <h2>Nikitas Aussehen</h2>
-        <p>Füge ein fotorealistisches Bild von Nikita ein. Du kannst eine
-           Bild-Adresse (URL) einfügen oder ein Bild direkt von deinem Gerät wählen.</p>
+        <p>Füge ein fotorealistisches <b>Bild</b> oder ein bewegtes <b>Video</b>
+           von Nikita ein — per Adresse (URL) oder direkt von deinem Gerät.
+           Ein Video wird in Endlosschleife abgespielt („lebendiges Foto").</p>
 
-        <label for="portraitUrl">Bild-Adresse (URL)</label>
+        <label for="portraitUrl">Bild- oder Video-Adresse (URL)</label>
         <div class="row">
-          <input id="portraitUrl" type="text" placeholder="https://…/nikita.jpg" />
+          <input id="portraitUrl" type="text" placeholder="https://…/nikita.jpg  oder  .mp4" />
           <button id="portraitUrlSave" class="primary">Übernehmen</button>
         </div>
 
-        <label for="portraitFile">…oder Bild vom Gerät</label>
-        <input id="portraitFile" type="file" accept="image/*" />
+        <label for="portraitFile">…oder Bild/Video vom Gerät</label>
+        <input id="portraitFile" type="file" accept="image/*,video/*" />
 
         <div class="modal-actions">
           <button id="portraitRemove" class="ghost">Zurück zur Illustration</button>

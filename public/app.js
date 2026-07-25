@@ -5,30 +5,94 @@ const avatar = new Avatar(avatarEl);
 avatar.setMood('cool');
 avatar.setPose('idle');
 
-// ── Custom photorealistic portrait (optional) ────────────────
-const PORTRAIT_KEY = 'kichat.portrait.v1';
+// ── Custom photorealistic portrait / animated portrait (optional) ──
+const PORTRAIT_KEY = 'kichat.portrait.v2';
 const portraitImg = document.getElementById('portrait');
+const portraitVideo = document.getElementById('portraitVideo');
+let currentObjectUrl = null;
 
-function applyPortrait(src) {
-  if (!src) return clearPortrait();
-  portraitImg.src = src;
-  portraitImg.hidden = false;
+function showPortrait(src, type) {
+  hideBoth(false);
+  if (type === 'video') {
+    portraitVideo.src = src;
+    portraitVideo.hidden = false;
+    portraitVideo.play?.().catch(() => {});
+  } else {
+    portraitImg.src = src;
+    portraitImg.hidden = false;
+  }
   avatarEl.style.display = 'none';
 }
+function hideBoth(showAvatar = true) {
+  portraitImg.hidden = true; portraitImg.removeAttribute('src');
+  portraitVideo.hidden = true; portraitVideo.removeAttribute('src');
+  if (currentObjectUrl) { URL.revokeObjectURL(currentObjectUrl); currentObjectUrl = null; }
+  if (showAvatar) avatarEl.style.display = '';
+}
 function clearPortrait() {
-  portraitImg.hidden = true;
-  portraitImg.removeAttribute('src');
-  avatarEl.style.display = '';
+  hideBoth(true);
+  try { localStorage.removeItem(PORTRAIT_KEY); } catch { /* ignore */ }
+  idbDelete().catch(() => {});
 }
-function savePortrait(src) {
-  try { localStorage.setItem(PORTRAIT_KEY, src); } catch { /* quota */ }
+
+// meta: { kind: 'url'|'data'|'idb', type: 'image'|'video', value?: string }
+function saveMeta(meta) {
+  try { localStorage.setItem(PORTRAIT_KEY, JSON.stringify(meta)); } catch { /* quota */ }
 }
-function loadPortrait() {
-  try {
-    const src = localStorage.getItem(PORTRAIT_KEY);
-    if (src) applyPortrait(src);
-  } catch { /* ignore */ }
+async function loadPortrait() {
+  let meta;
+  try { meta = JSON.parse(localStorage.getItem(PORTRAIT_KEY) || 'null'); } catch { meta = null; }
+  if (!meta) return;
+  if (meta.kind === 'url' || meta.kind === 'data') {
+    showPortrait(meta.value, meta.type);
+  } else if (meta.kind === 'idb') {
+    const blob = await idbGet().catch(() => null);
+    if (blob) {
+      currentObjectUrl = URL.createObjectURL(blob);
+      showPortrait(currentObjectUrl, meta.type);
+    }
+  }
 }
+
+// Tiny IndexedDB helper for storing large media blobs persistently.
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('kichat', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('media');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbPut(blob) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('media', 'readwrite');
+    tx.objectStore('media').put(blob, 'portrait');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGet() {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('media', 'readonly');
+    const req = tx.objectStore('media').get('portrait');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbDelete() {
+  const db = await idbOpen();
+  return new Promise((resolve) => {
+    const tx = db.transaction('media', 'readwrite');
+    tx.objectStore('media').delete('portrait');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+  });
+}
+
+function isVideoUrl(url) { return /\.(mp4|webm|mov|m4v|ogg)(\?|#|$)/i.test(url); }
+
 loadPortrait();
 
 // Settings modal wiring
@@ -48,29 +112,40 @@ settings.modal.addEventListener('click', (e) => { if (e.target === settings.moda
 
 settings.urlSave.addEventListener('click', () => {
   const url = settings.url.value.trim();
-  if (!url) { settings.hint.textContent = 'Bitte eine Bild-Adresse einfügen.'; return; }
-  applyPortrait(url);
-  savePortrait(url);
-  settings.hint.textContent = 'Bild übernommen ✓';
+  if (!url) { settings.hint.textContent = 'Bitte eine Bild- oder Video-Adresse einfügen.'; return; }
+  const type = isVideoUrl(url) ? 'video' : 'image';
+  showPortrait(url, type);
+  saveMeta({ kind: 'url', type, value: url });
+  settings.hint.textContent = (type === 'video' ? 'Video' : 'Bild') + ' übernommen ✓';
 });
 
 settings.file.addEventListener('change', async () => {
   const file = settings.file.files?.[0];
   if (!file) return;
-  settings.hint.textContent = 'Bild wird verarbeitet…';
+  const isVideo = file.type.startsWith('video');
+  settings.hint.textContent = (isVideo ? 'Video' : 'Bild') + ' wird verarbeitet…';
   try {
-    const dataUrl = await downscaleImage(file, 768);
-    applyPortrait(dataUrl);
-    savePortrait(dataUrl);
-    settings.hint.textContent = 'Bild übernommen ✓';
+    if (isVideo) {
+      // Store the video blob in IndexedDB (persists across reloads).
+      await idbPut(file);
+      hideBoth(false);
+      currentObjectUrl = URL.createObjectURL(file);
+      showPortrait(currentObjectUrl, 'video');
+      saveMeta({ kind: 'idb', type: 'video' });
+    } else {
+      const dataUrl = await downscaleImage(file, 768);
+      showPortrait(dataUrl, 'image');
+      saveMeta({ kind: 'data', type: 'image', value: dataUrl });
+      idbDelete().catch(() => {});
+    }
+    settings.hint.textContent = (isVideo ? 'Video' : 'Bild') + ' übernommen ✓';
   } catch (err) {
-    settings.hint.textContent = 'Konnte das Bild nicht laden.';
+    settings.hint.textContent = 'Konnte die Datei nicht laden.';
   }
 });
 
 settings.remove.addEventListener('click', () => {
   clearPortrait();
-  try { localStorage.removeItem(PORTRAIT_KEY); } catch { /* ignore */ }
   settings.hint.textContent = 'Zurück zur Illustration.';
 });
 
