@@ -12,13 +12,39 @@
     <!-- Stage: the avatar you see on screen -->
     <section class="stage">
       <div class="stage-glow"></div>
+      <img id="portrait" class="portrait" alt="Nikita" hidden />
       <div id="avatar" class="avatar"></div>
       <div class="nameplate">
         <span class="name">Nikita</span>
         <span class="status" id="status">bereit</span>
       </div>
       <div class="mood-badge" id="moodBadge">neutral</div>
+      <button id="settingsBtn" class="settings-btn" title="Aussehen ändern">⚙</button>
     </section>
+
+    <!-- Appearance settings -->
+    <div id="settingsModal" class="modal" hidden>
+      <div class="modal-card">
+        <h2>Nikitas Aussehen</h2>
+        <p>Füge ein fotorealistisches Bild von Nikita ein. Du kannst eine
+           Bild-Adresse (URL) einfügen oder ein Bild direkt von deinem Gerät wählen.</p>
+
+        <label for="portraitUrl">Bild-Adresse (URL)</label>
+        <div class="row">
+          <input id="portraitUrl" type="text" placeholder="https://…/nikita.jpg" />
+          <button id="portraitUrlSave" class="primary">Übernehmen</button>
+        </div>
+
+        <label for="portraitFile">…oder Bild vom Gerät</label>
+        <input id="portraitFile" type="file" accept="image/*" />
+
+        <div class="modal-actions">
+          <button id="portraitRemove" class="ghost">Zurück zur Illustration</button>
+          <button id="settingsClose" class="primary">Fertig</button>
+        </div>
+        <p class="hint" id="portraitHint"></p>
+      </div>
+    </div>
 
     <!-- Chat + actions -->
     <section class="panel">

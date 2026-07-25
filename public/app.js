@@ -1,8 +1,102 @@
 import { Avatar } from './avatar.js';
 
-const avatar = new Avatar(document.getElementById('avatar'));
+const avatarEl = document.getElementById('avatar');
+const avatar = new Avatar(avatarEl);
 avatar.setMood('cool');
 avatar.setPose('idle');
+
+// ── Custom photorealistic portrait (optional) ────────────────
+const PORTRAIT_KEY = 'kichat.portrait.v1';
+const portraitImg = document.getElementById('portrait');
+
+function applyPortrait(src) {
+  if (!src) return clearPortrait();
+  portraitImg.src = src;
+  portraitImg.hidden = false;
+  avatarEl.style.display = 'none';
+}
+function clearPortrait() {
+  portraitImg.hidden = true;
+  portraitImg.removeAttribute('src');
+  avatarEl.style.display = '';
+}
+function savePortrait(src) {
+  try { localStorage.setItem(PORTRAIT_KEY, src); } catch { /* quota */ }
+}
+function loadPortrait() {
+  try {
+    const src = localStorage.getItem(PORTRAIT_KEY);
+    if (src) applyPortrait(src);
+  } catch { /* ignore */ }
+}
+loadPortrait();
+
+// Settings modal wiring
+const settings = {
+  modal: document.getElementById('settingsModal'),
+  open: document.getElementById('settingsBtn'),
+  close: document.getElementById('settingsClose'),
+  url: document.getElementById('portraitUrl'),
+  urlSave: document.getElementById('portraitUrlSave'),
+  file: document.getElementById('portraitFile'),
+  remove: document.getElementById('portraitRemove'),
+  hint: document.getElementById('portraitHint'),
+};
+settings.open.addEventListener('click', () => { settings.modal.hidden = false; settings.hint.textContent = ''; });
+settings.close.addEventListener('click', () => { settings.modal.hidden = true; });
+settings.modal.addEventListener('click', (e) => { if (e.target === settings.modal) settings.modal.hidden = true; });
+
+settings.urlSave.addEventListener('click', () => {
+  const url = settings.url.value.trim();
+  if (!url) { settings.hint.textContent = 'Bitte eine Bild-Adresse einfügen.'; return; }
+  applyPortrait(url);
+  savePortrait(url);
+  settings.hint.textContent = 'Bild übernommen ✓';
+});
+
+settings.file.addEventListener('change', async () => {
+  const file = settings.file.files?.[0];
+  if (!file) return;
+  settings.hint.textContent = 'Bild wird verarbeitet…';
+  try {
+    const dataUrl = await downscaleImage(file, 768);
+    applyPortrait(dataUrl);
+    savePortrait(dataUrl);
+    settings.hint.textContent = 'Bild übernommen ✓';
+  } catch (err) {
+    settings.hint.textContent = 'Konnte das Bild nicht laden.';
+  }
+});
+
+settings.remove.addEventListener('click', () => {
+  clearPortrait();
+  try { localStorage.removeItem(PORTRAIT_KEY); } catch { /* ignore */ }
+  settings.hint.textContent = 'Zurück zur Illustration.';
+});
+
+// Downscale + compress an uploaded image so it fits in localStorage.
+function downscaleImage(file, maxSize) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        const scale = Math.min(1, maxSize / Math.max(width, height));
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 const els = {
   messages: document.getElementById('messages'),
