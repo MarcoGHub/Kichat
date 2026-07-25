@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nikita — Digitaler Begleiter</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖤</text></svg>" />
+</head>
+<body>
+  <div class="app">
+    <!-- Stage: the avatar you see on screen -->
+    <section class="stage">
+      <div class="stage-glow"></div>
+      <div id="avatar" class="avatar"></div>
+      <div class="nameplate">
+        <span class="name">Nikita</span>
+        <span class="status" id="status">bereit</span>
+      </div>
+      <div class="mood-badge" id="moodBadge">neutral</div>
+    </section>
+
+    <!-- Chat + actions -->
+    <section class="panel">
+      <header class="panel-head">
+        <div class="dot" id="providerDot"></div>
+        <span id="providerLabel">verbinde…</span>
+        <button id="clearBtn" class="ghost" title="Verlauf löschen">⟲</button>
+      </header>
+
+      <div class="messages" id="messages"></div>
+
+      <div class="action-feed" id="actionFeed" aria-live="polite"></div>
+
+      <form class="composer" id="composer">
+        <input id="input" type="text" autocomplete="off"
+               placeholder="Schreib Nikita … (z. B. „merk dir, dass ich Tee mag" oder „sei verspielt")" />
+        <button type="submit" id="sendBtn">Senden</button>
+      </form>
+    </section>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
